@@ -1,4 +1,4 @@
-module howto
+module github.com/yevmel/howto
 
 go 1.27
 
