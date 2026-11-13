@@ -24,7 +24,7 @@ homebrew_casks:
   - name: howto
     binaries: [howto]
     homepage: https://github.com/yevmel/howto
-    description: For everything you know how to say but not how to type.
+    description: For everything you know how to say but not how to type
     repository:
       owner: yevmel
       name: homebrew-tap
