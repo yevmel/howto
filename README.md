@@ -25,6 +25,16 @@ Execute this command? [y/N]
 
 ## Installation
 
+### With Homebrew
+
+On macOS and Linux:
+
+```sh
+brew install yevmel/tap/howto
+```
+
+Upgrade later with `brew upgrade howto`.
+
 ### From a release
 
 Download the archive for your platform from the [releases page](../../releases), unpack it and put `howto` on your `PATH`:
