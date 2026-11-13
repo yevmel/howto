@@ -20,6 +20,25 @@ archives:
 checksum:
   name_template: checksums.txt
 
+homebrew_casks:
+  - name: howto
+    binaries: [howto]
+    homepage: https://github.com/yevmel/howto
+    description: For everything you know how to say but not how to type.
+    repository:
+      owner: yevmel
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    # Prereleases (e.g. v1.0.0-rc1) don't update the tap.
+    skip_upload: auto
+    hooks:
+      post:
+        # The binary is not notarized; without this, Gatekeeper blocks the first run.
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/howto"]
+          end
+
 snapshot:
   version_template: "{{ incpatch .Version }}-snapshot"
 
