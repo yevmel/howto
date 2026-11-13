@@ -34,12 +34,18 @@ tar -xzf howto_*_darwin_arm64.tar.gz
 mv howto /usr/local/bin/
 ```
 
-### From source
+### With Go
 
-Requires [Go](https://go.dev) 1.27 or newer.
+Requires [Go](https://go.dev) 1.27 or newer. The binary lands in `$(go env GOPATH)/bin`, usually `~/go/bin`:
 
 ```sh
-git clone <repository-url> howto
+go install github.com/yevmel/howto/cmd/howto@latest
+```
+
+### From source
+
+```sh
+git clone https://github.com/yevmel/howto.git
 cd howto
 make build
 cp bin/howto /usr/local/bin/

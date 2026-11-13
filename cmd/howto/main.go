@@ -9,11 +9,11 @@ import (
 	"os"
 	"os/signal"
 
-	"howto/internal/config"
-	"howto/internal/llm"
-	"howto/internal/prompt"
-	"howto/internal/runner"
-	"howto/internal/ui"
+	"github.com/yevmel/howto/internal/config"
+	"github.com/yevmel/howto/internal/llm"
+	"github.com/yevmel/howto/internal/prompt"
+	"github.com/yevmel/howto/internal/runner"
+	"github.com/yevmel/howto/internal/ui"
 )
 
 // version is set at build time via -ldflags "-X main.version=...".
