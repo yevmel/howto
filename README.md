@@ -9,14 +9,17 @@ $ howto find all files larger than 100 MB in my home directory
 │ find ~ -type f -size +100M -exec ls -lh {} + 2>/dev/null │
 ╰──────────────────────────────────────────────────────────╯
 
-Execute this command? [y/N]
+Execute this command?
+❯ Execute (Enter)
+  Execute with sudo
+  Nevermind (Esc)
 ```
 
-`howto` sends your description to any OpenAI-compatible LLM endpoint — a local [Ollama](https://ollama.com), LM Studio, vLLM or a hosted API — and shows the suggested command with syntax highlighting. Nothing runs until you press `y`.
+`howto` sends your description to any OpenAI-compatible LLM endpoint — a local [Ollama](https://ollama.com), LM Studio, vLLM or a hosted API — and shows the suggested command with syntax highlighting. Nothing runs until you choose to execute it.
 
 ## Features
 
-- **Safe by default** — every command needs an explicit `y`. Keys typed while the model is still thinking are discarded, so you can't confirm a command you haven't seen.
+- **Safe by default** — every command needs an explicit choice. Keys typed while the model is still thinking are discarded, so you can't confirm a command you haven't seen.
 - **Fits your system** — the model is told your OS (e.g. `macOS 26.1`, `Linux (Ubuntu 24.04 LTS)`) and your shell, and is asked for tools installed by default.
 - **Works with any OpenAI-compatible endpoint** — local or hosted; the model can be detected automatically.
 - **Nice terminal UI** — a spinner while waiting, the command highlighted in a box, colors that adapt to light and dark terminals. Respects [`NO_COLOR`](https://no-color.org).
@@ -112,16 +115,16 @@ Other environment variables:
 
 1. Your description is sent to `<url>/chat/completions` together with a system prompt naming your OS and shell. The model is asked to reply with a single command only.
 2. Code fences or backticks the model adds anyway are stripped. If the request can't be expressed as a shell command, `howto` says so instead of guessing.
-3. The command is shown and you confirm with a single keypress. Only `y` runs it; any other key, Ctrl-C included, cancels.
+3. The command is shown with a menu: pick *Execute*, *Execute with sudo* or *Nevermind* with the arrow keys (or `j`/`k`) and press Enter. Esc and Ctrl-C cancel.
 4. The command runs in your shell with your terminal attached. Ctrl-C goes to the command.
 
-When stdin is not a terminal, `howto` reads a whole line instead (`y` or `yes`). When stderr is not a terminal, the spinner, box and colors are left out.
+When stdin is not a terminal, `howto` reads a whole line instead: `y`/`yes` executes, `s`/`sudo` executes with sudo, anything else cancels. When stderr is not a terminal, the spinner, box and colors are left out.
 
 ## Exit status
 
 | Situation | Status |
 |---|---|
-| Command executed | the command's exit status |
+| Command executed | the command's exit status (with sudo: sudo's exit status) |
 | Command killed by a signal | 128 + signal number (130 for Ctrl-C) |
 | Ctrl-C while waiting for the model | 130 |
 | Not confirmed | 0 |
@@ -145,7 +148,7 @@ cmd/howto/          entry point
 internal/config/    flags and environment variables
 internal/llm/       OpenAI-compatible client
 internal/prompt/    system prompt, OS and shell detection, answer cleanup
-internal/ui/        spinner, command box, confirmation prompt
+internal/ui/        spinner, command box, execution menu
 internal/runner/    runs the command in your shell
 ```
 

@@ -72,14 +72,15 @@ func run() int {
 	}
 
 	out.ShowCommand(command)
-	if !out.Confirm(ctx, os.Stdin, "Execute this command? [y/N]") {
+	choice := out.Choose(ctx, os.Stdin, "Execute this command?")
+	if choice == ui.Nevermind {
 		out.Info("Not executed.")
 		return 0
 	}
 
 	// From here on, Ctrl-C belongs to the command.
 	stopSignals()
-	code, err := runner.Run(runner.ShellPath(shell), command)
+	code, err := runner.Run(runner.ShellPath(shell), command, choice == ui.ExecuteSudo)
 	if err != nil {
 		out.Error(err)
 		return exitError

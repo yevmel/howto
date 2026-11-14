@@ -13,7 +13,7 @@ func TestRunExitStatus(t *testing.T) {
 		{"kill -TERM $$", 143},
 	}
 	for _, tt := range tests {
-		got, err := Run("/bin/sh", tt.command)
+		got, err := Run("/bin/sh", tt.command, false)
 		if err != nil || got != tt.want {
 			t.Errorf("Run(%q) = %d, %v; want %d", tt.command, got, err, tt.want)
 		}
@@ -21,7 +21,7 @@ func TestRunExitStatus(t *testing.T) {
 }
 
 func TestRunMissingShell(t *testing.T) {
-	if _, err := Run("/nonexistent/shell", "true"); err == nil {
+	if _, err := Run("/nonexistent/shell", "true", false); err == nil {
 		t.Error("expected an error for a missing shell")
 	}
 }

@@ -104,18 +104,20 @@ func TestSpinReturnsOnCancel(t *testing.T) {
 	}
 }
 
-func TestConfirmLine(t *testing.T) {
+func TestChooseLine(t *testing.T) {
 	tests := []struct {
 		input string
-		want  bool
+		want  Choice
 	}{
-		{"y\n", true},
-		{"YES\n", true},
-		{" y \n", true},
-		{"n\n", false},
-		{"\n", false},
-		{"yep\n", false},
-		{"", false}, // EOF
+		{"y\n", Execute},
+		{"YES\n", Execute},
+		{" y \n", Execute},
+		{"s\n", ExecuteSudo},
+		{"sudo\n", ExecuteSudo},
+		{"n\n", Nevermind},
+		{"\n", Nevermind},
+		{"yep\n", Nevermind},
+		{"", Nevermind}, // EOF
 	}
 	for _, tt := range tests {
 		r, w, err := os.Pipe()
@@ -126,18 +128,18 @@ func TestConfirmLine(t *testing.T) {
 		_ = w.Close()
 
 		var b bytes.Buffer
-		got := newPlain(&b, false, 0).Confirm(context.Background(), r, "Execute? [y/N]")
+		got := newPlain(&b, false, 0).Choose(context.Background(), r, "Execute?")
 		_ = r.Close()
 		if got != tt.want {
 			t.Errorf("input %q: got %v, want %v", tt.input, got, tt.want)
 		}
-		if !strings.HasPrefix(b.String(), "Execute? [y/N] ") {
+		if !strings.HasPrefix(b.String(), "Execute? [y/s/N] ") {
 			t.Errorf("prompt missing: %q", b.String())
 		}
 	}
 }
 
-func TestConfirmLineCancelled(t *testing.T) {
+func TestChooseLineCancelled(t *testing.T) {
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
@@ -146,7 +148,54 @@ func TestConfirmLineCancelled(t *testing.T) {
 	defer w.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if newPlain(&bytes.Buffer{}, false, 0).Confirm(ctx, r, "?") {
-		t.Error("cancelled confirmation must mean no")
+	if got := newPlain(&bytes.Buffer{}, false, 0).Choose(ctx, r, "?"); got != Nevermind {
+		t.Errorf("cancelled prompt: got %v, want Nevermind", got)
+	}
+}
+
+func TestMenuKey(t *testing.T) {
+	tests := []struct {
+		name     string
+		sel      Choice
+		keys     []string
+		want     Choice
+		wantDone bool
+	}{
+		{"enter keeps default", Execute, []string{"\r"}, Execute, true},
+		{"down then enter", Execute, []string{"\x1b[B", "\r"}, ExecuteSudo, true},
+		{"down stops at last", Execute, []string{"j", "j", "j", "\r"}, Nevermind, true},
+		{"up stops at first", ExecuteSudo, []string{"\x1b[A", "k", "\r"}, Execute, true},
+		{"esc cancels", ExecuteSudo, []string{"\x1b"}, Nevermind, true},
+		{"ctrl-c cancels", Execute, []string{"\x03"}, Nevermind, true},
+		{"other keys ignored", Execute, []string{"y", "x"}, Execute, false},
+	}
+	for _, tt := range tests {
+		sel, done := tt.sel, false
+		for _, k := range tt.keys {
+			if sel, done = menuKey(sel, k); done {
+				break
+			}
+		}
+		if sel != tt.want || done != tt.wantDone {
+			t.Errorf("%s: got %v/%v, want %v/%v", tt.name, sel, done, tt.want, tt.wantDone)
+		}
+	}
+}
+
+func TestMenuLines(t *testing.T) {
+	u := newPlain(&bytes.Buffer{}, true, 80)
+	tests := []struct {
+		sel  Choice
+		want []string
+	}{
+		{Execute, []string{"❯ Execute (Enter)", "  Execute with sudo", "  Nevermind (Esc)"}},
+		{ExecuteSudo, []string{"  Execute", "❯ Execute with sudo (Enter)", "  Nevermind (Esc)"}},
+		{Nevermind, []string{"  Execute", "  Execute with sudo", "❯ Nevermind (Enter)"}},
+	}
+	for _, tt := range tests {
+		got := u.menuLines(tt.sel)
+		if strings.Join(got, "\n") != strings.Join(tt.want, "\n") {
+			t.Errorf("sel %v: got %q, want %q", tt.sel, got, tt.want)
+		}
 	}
 }
