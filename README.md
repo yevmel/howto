@@ -2,18 +2,7 @@
 
 **Describe what you want to do — get a shell command, and run it after you confirm.**
 
-```console
-$ howto find all files larger than 100 MB in my home directory
-
-╭──────────────────────────────────────────────────────────╮
-│ find ~ -type f -size +100M -exec ls -lh {} + 2>/dev/null │
-╰──────────────────────────────────────────────────────────╯
-
-Execute this command?
-❯ Execute (Enter)
-  Execute with sudo
-  Nevermind (Esc)
-```
+![howto turning "check what time it is in Berlin right now" into TZ=Europe/Berlin date and running it](howto.gif)
 
 `howto` sends your description to any OpenAI-compatible LLM endpoint — a local [Ollama](https://ollama.com), LM Studio, vLLM or a hosted API — and shows the suggested command with syntax highlighting. Nothing runs until you choose to execute it.
 
