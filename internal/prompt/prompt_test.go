@@ -27,11 +27,24 @@ func TestClean(t *testing.T) {
 }
 
 func TestCommand(t *testing.T) {
-	if got, err := Command("```\nls\n```"); err != nil || got != "ls" {
-		t.Errorf("got %q, %v", got, err)
+	tests := []struct {
+		in, want    string
+		interactive bool
+	}{
+		{"```\nls\n```", "ls", false},
+		{Interactive + "\nnvm use 20", "nvm use 20", true},
+		{Interactive + " nvm use 20", "nvm use 20", true},
+		{"```sh\n" + Interactive + "\nnvm ls\n```", "nvm ls", true},
+		{Interactive + "\n```\nnvm ls\n```", "nvm ls", true},
 	}
-	for _, in := range []string{"", "  ", "```\n```", NoCommand, "`" + NoCommand + "`"} {
-		if _, err := Command(in); !errors.Is(err, ErrNoCommand) {
+	for _, tt := range tests {
+		got, interactive, err := Command(tt.in)
+		if err != nil || got != tt.want || interactive != tt.interactive {
+			t.Errorf("Command(%q) = %q, %v, %v; want %q, %v", tt.in, got, interactive, err, tt.want, tt.interactive)
+		}
+	}
+	for _, in := range []string{"", "  ", "```\n```", NoCommand, "`" + NoCommand + "`", Interactive, Interactive + "\n" + NoCommand} {
+		if _, _, err := Command(in); !errors.Is(err, ErrNoCommand) {
 			t.Errorf("Command(%q): got %v, want ErrNoCommand", in, err)
 		}
 	}
@@ -39,7 +52,7 @@ func TestCommand(t *testing.T) {
 
 func TestSystem(t *testing.T) {
 	got := System("macOS 26.1", "/bin/zsh")
-	for _, want := range []string{"Operating system: macOS 26.1", "Shell: /bin/zsh", "reply with exactly: " + NoCommand} {
+	for _, want := range []string{"Operating system: macOS 26.1", "Shell: /bin/zsh", "reply with exactly: " + NoCommand, "exactly " + Interactive + " before"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("system prompt lacks %q:\n%s", want, got)
 		}

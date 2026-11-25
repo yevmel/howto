@@ -105,7 +105,7 @@ Other environment variables:
 1. Your description is sent to `<url>/chat/completions` together with a system prompt naming your OS and shell. The model is asked to reply with a single command only.
 2. Code fences or backticks the model adds anyway are stripped. If the request can't be expressed as a shell command, `howto` says so instead of guessing.
 3. The command is shown with a menu: pick *Execute*, *Execute with sudo* or *Nevermind* with the arrow keys (or `j`/`k`) and press Enter. Esc and Ctrl-C cancel.
-4. The command runs in your shell with your terminal attached. Ctrl-C goes to the command.
+4. The command runs in your shell (`$SHELL -c`) with your terminal attached. Ctrl-C goes to the command. If it needs a function or alias from your shell's startup file — `nvm`, `conda activate`, `sdk` — the model marks it, the question reads *Execute this command? (interactive mode)*, and `howto` runs it in an interactive shell (`$SHELL -i -c`) instead, which loads `~/.zshrc` or `~/.bashrc` first. Ordinary commands skip that, so they start without the delay.
 
 When stdin is not a terminal, `howto` reads a whole line instead: `y`/`yes` executes, `s`/`sudo` executes with sudo, anything else cancels. When stderr is not a terminal, the spinner, box and colors are left out.
 

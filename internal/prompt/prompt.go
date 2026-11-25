@@ -9,6 +9,9 @@ import (
 // NoCommand is the answer the model gives when a request cannot be a shell command.
 const NoCommand = "HOWTO_NO_COMMAND"
 
+// Interactive is the line the model puts before a command that needs the shell's rc file loaded.
+const Interactive = "HOWTO_INTERACTIVE"
+
 // ErrNoCommand means the model did not produce a usable command.
 var ErrNoCommand = errors.New("the model could not turn this request into a command")
 
@@ -24,11 +27,15 @@ Rules:
 - If several steps are needed, combine them into one line with && or pipes.
 - Prefer standard tools that are installed by default on this system.
 - If the request cannot be expressed as a shell command, reply with exactly: {no_command}
+- If the command uses a shell function or alias that only exists after the shell's startup file
+  (e.g. ~/.zshrc, ~/.bashrc) is loaded, put a line with exactly {interactive} before the command.
+  Examples: nvm, rvm, pyenv shell, conda activate, sdk (SDKMAN!), user-defined aliases.
+  Do not add it for regular programs and shell builtins.
 `
 
 // System returns the system prompt for the given OS description and shell.
 func System(osName, shell string) string {
-	return strings.NewReplacer("{os}", osName, "{shell}", shell, "{no_command}", NoCommand).Replace(systemTemplate)
+	return strings.NewReplacer("{os}", osName, "{shell}", shell, "{no_command}", NoCommand, "{interactive}", Interactive).Replace(systemTemplate)
 }
 
 // Shell returns the user's shell as reported by $SHELL, or /bin/sh.
@@ -40,12 +47,17 @@ func Shell(getenv func(string) string) string {
 }
 
 // Command cleans the model's answer and returns the command, or ErrNoCommand.
-func Command(answer string) (string, error) {
-	cmd := Clean(answer)
-	if cmd == "" || cmd == NoCommand {
-		return "", ErrNoCommand
+// interactive reports that the model marked the command as needing an interactive shell.
+func Command(answer string) (cmd string, interactive bool, err error) {
+	cmd = Clean(answer)
+	// Models may put the marker on the command line itself or inside the code fence.
+	if rest, ok := strings.CutPrefix(cmd, Interactive); ok {
+		cmd, interactive = Clean(rest), true
 	}
-	return cmd, nil
+	if cmd == "" || cmd == NoCommand {
+		return "", false, ErrNoCommand
+	}
+	return cmd, interactive, nil
 }
 
 // Clean strips Markdown code fences or inline backticks a model may add anyway.

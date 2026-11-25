@@ -48,6 +48,7 @@ func run() int {
 	shell := prompt.Shell(os.Getenv)
 	client := llm.New(cfg.URL, cfg.Token)
 	var command string
+	var interactive bool
 	err = out.Spin(ctx, "Thinking…", func(ctx context.Context) error {
 		model := cfg.Model
 		if model == "" {
@@ -60,7 +61,7 @@ func run() int {
 		if err != nil {
 			return err
 		}
-		command, err = prompt.Command(answer)
+		command, interactive, err = prompt.Command(answer)
 		return err
 	})
 	if interrupted(ctx, err) {
@@ -72,7 +73,11 @@ func run() int {
 	}
 
 	out.ShowCommand(command)
-	choice := out.Choose(ctx, os.Stdin, "Execute this command?")
+	question := "Execute this command?"
+	if interactive {
+		question = "Execute this command? (interactive mode)"
+	}
+	choice := out.Choose(ctx, os.Stdin, question)
 	if choice == ui.Nevermind {
 		out.Info("Not executed.")
 		return 0
@@ -80,7 +85,10 @@ func run() int {
 
 	// From here on, Ctrl-C belongs to the command.
 	stopSignals()
-	code, err := runner.Run(runner.ShellPath(shell), command, choice == ui.ExecuteSudo)
+	code, err := runner.Run(runner.ShellPath(shell), command, runner.Options{
+		Sudo:        choice == ui.ExecuteSudo,
+		Interactive: interactive,
+	})
 	if err != nil {
 		out.Error(err)
 		return exitError

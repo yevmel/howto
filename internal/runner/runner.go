@@ -19,9 +19,15 @@ func ShellPath(shell string) string {
 	return "/bin/sh"
 }
 
-// Run executes command with shell -c (via sudo if asked), attached to the terminal, and returns its exit status.
+// Options control how Run starts the shell.
+type Options struct {
+	Sudo        bool // run as root via sudo
+	Interactive bool // load the shell's rc file, for functions and aliases defined there (nvm, …)
+}
+
+// Run executes command with shell -c, attached to the terminal, and returns its exit status.
 // A command killed by a signal yields 128 + the signal number (130 for Ctrl-C).
-func Run(shell, command string, sudo bool) (int, error) {
+func Run(shell, command string, opts Options) (int, error) {
 	// Catch (rather than ignore) SIGINT: ignored signals stay ignored in the child,
 	// caught ones are reset to the default, so Ctrl-C reaches the command only.
 	sigs := make(chan os.Signal, 1)
@@ -29,13 +35,18 @@ func Run(shell, command string, sudo bool) (int, error) {
 	defer signal.Stop(sigs)
 
 	args := []string{shell, "-c", command}
-	if sudo {
+	if opts.Interactive {
+		// Loading the rc file is slow, so only when the command needs it.
+		args = []string{shell, "-i", "-c", command}
+	}
+	if opts.Sudo {
 		// Run the whole command line as root, not just its first word.
 		args = append([]string{"sudo"}, args...)
 	}
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	err := cmd.Run()
+	reclaimTerminal(os.Stdin)
 	if err == nil {
 		return 0, nil
 	}

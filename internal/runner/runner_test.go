@@ -13,7 +13,26 @@ func TestRunExitStatus(t *testing.T) {
 		{"kill -TERM $$", 143},
 	}
 	for _, tt := range tests {
-		got, err := Run("/bin/sh", tt.command, false)
+		got, err := Run("/bin/sh", tt.command, Options{})
+		if err != nil || got != tt.want {
+			t.Errorf("Run(%q) = %d, %v; want %d", tt.command, got, err, tt.want)
+		}
+	}
+}
+
+func TestRunInteractiveExitStatus(t *testing.T) {
+	tests := []struct {
+		command string
+		want    int
+	}{
+		{"true", 0},
+		{"exit 3", 3},
+		// An interactive shell ignores signals sent to itself; signal a child instead.
+		{"sh -c 'kill -INT $$'", 130},
+		{"sh -c 'kill -TERM $$'", 143},
+	}
+	for _, tt := range tests {
+		got, err := Run("/bin/sh", tt.command, Options{Interactive: true})
 		if err != nil || got != tt.want {
 			t.Errorf("Run(%q) = %d, %v; want %d", tt.command, got, err, tt.want)
 		}
@@ -21,7 +40,7 @@ func TestRunExitStatus(t *testing.T) {
 }
 
 func TestRunMissingShell(t *testing.T) {
-	if _, err := Run("/nonexistent/shell", "true", false); err == nil {
+	if _, err := Run("/nonexistent/shell", "true", Options{}); err == nil {
 		t.Error("expected an error for a missing shell")
 	}
 }
